@@ -5,6 +5,6 @@
   },
   "rules": {
     "comma-spacing": "off",
-    "no-return-await": "off"
+    "@typescript-eslint/return-await": "off"
   }
 }
