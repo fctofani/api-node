@@ -1,16 +1,33 @@
 import { SignUpController } from './signup'
 import { MissingParamError } from '../errors/missing-param-errors'
+import { InvalidParamError } from '../errors/invalid-param-error'
+import { EmailValidator } from '../protocols/email-validator'
 
-const sutFactory = (): SignUpController => {
-  return new SignUpController()
+interface SutTypes {
+  sut: SignUpController
+  emailValidator: EmailValidator
+}
+
+const sutFactory = (): SutTypes => {
+  class EmailValidatorStub implements EmailValidator {
+    isValid (email: string): boolean {
+      return true
+    }
+  }
+  const emailValidator = new EmailValidatorStub()
+  const sut = new SignUpController(emailValidator)
+  return {
+    sut,
+    emailValidator
+  }
 }
 
 describe('SignUp Controller', () => {
   test('should return 400 if no name is provided', () => {
-    const sut = sutFactory()
+    const { sut } = sutFactory()
     const httpRequest = {
       body: {
-        email: 'any_email',
+        email: 'any_email@mail.com',
         password: 'any_password',
         confirm_password: 'any_confirm_password'
       }
@@ -21,7 +38,7 @@ describe('SignUp Controller', () => {
   })
 
   test('should return 400 if no email is provided', () => {
-    const sut = sutFactory()
+    const { sut } = sutFactory()
     const httpRequest = {
       body: {
         name: 'any_name',
@@ -35,11 +52,11 @@ describe('SignUp Controller', () => {
   })
 
   test('should return 400 if no password is provided', () => {
-    const sut = sutFactory()
+    const { sut } = sutFactory()
     const httpRequest = {
       body: {
         name: 'any_name',
-        email: 'any_email',
+        email: 'any_email@mail.com',
         confirm_password: 'any_confirm_password'
       }
     }
@@ -49,16 +66,32 @@ describe('SignUp Controller', () => {
   })
 
   test('should return 400 if no password confirmation is provided', () => {
-    const sut = sutFactory()
+    const { sut } = sutFactory()
     const httpRequest = {
       body: {
         name: 'any_name',
-        email: 'any_email',
+        email: 'any_email@mail.com',
         password: 'any_password'
       }
     }
     const httpResponse = sut.handle(httpRequest)
     expect(httpResponse.statusCode).toBe(400)
-    expect(httpResponse.body).toEqual(new MissingParamError('password-confirmation'))
+    expect(httpResponse.body).toEqual(new MissingParamError('confirm_password'))
+  })
+
+  test('should return 400 if invalid email is provided', () => {
+    const { sut, emailValidator } = sutFactory()
+    jest.spyOn(emailValidator, 'isValid').mockReturnValueOnce(false)
+    const httpRequest = {
+      body: {
+        name: 'any_name',
+        email: 'invalid_email@mail.com',
+        password: 'any_password',
+        confirm_password: 'any_confirm_password'
+      }
+    }
+    const httpResponse = sut.handle(httpRequest)
+    expect(httpResponse.statusCode).toBe(400)
+    expect(httpResponse.body).toEqual(new InvalidParamError('email'))
   })
 })
