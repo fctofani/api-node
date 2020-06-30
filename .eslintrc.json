@@ -2,5 +2,9 @@
   "extends": "standard-with-typescript",
   "parserOptions": {
     "project": "/.tsconfig.json"
+  },
+  "rules": {
+    "comma-spacing": "off",
+    "no-return-await": "off"
   }
 }
